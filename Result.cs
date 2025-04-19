@@ -2,55 +2,45 @@ public class Result
 {
     public Result(bool isSuccess, string? error)
     {
-        if(isSuccess && error is not null){
-            throw new InvalidOperationException();
-        }
+        if (isSuccess && error is not null)
+            throw new InvalidOperationException("Success result cannot have an error.");
 
+        if (!isSuccess && string.IsNullOrEmpty(error))
+            throw new InvalidOperationException("Failure result must have an error message.");
 
-        if(isSuccess == false && error){
-            throw new InvalidOperationException();
-        }
-
-        IsSuccess = isSuccess; 
-        Error = error; 
+        IsSuccess = isSuccess;
+        Error = error;
     }
 
-    public string? Error { get; set }
-    public bool IsSuccess { get }
-    public bool IsFalure => !IsSuccess;
+    public string? Error { get; }
+    public bool IsSuccess { get; }
+    public bool IsFailure => !IsSuccess;
 
     public static Result Success() => new(true, null);
-
-    public static Result Falure(string error) = new(false, error);
-    public static implicit operator Result(string error) => new(false, error);
+    public static Result Failure(string error) => new(false, error);
+    public static implicit operator Result(string error) => Failure(error);
 }
-
 
 public class Result<TValue> : Result
 {
+    private readonly TValue _value;
 
-    public Result(TValue value, bool isSuccess, string? error) : base(isSuccess, error)
+    public Result(TValue value, bool isSuccess, string? error) 
+        : base(isSuccess, error)
     {
+        if (isSuccess && value is null)
+            throw new ArgumentNullException(nameof(value));
+
         _value = value;
     }
 
-
-    private readonly TValue _value; 
     public TValue Value => IsSuccess 
-                    ? _value 
-                    : 
-                    throw new InvalidOperationException("The value of a failure result can not be accessed."); 
-    
-    public string? Error { get; set }
-    public bool IsSuccess { get }
-    public bool IsFalure => !IsSuccess;
+        ? _value 
+        : throw new InvalidOperationException("The value of a failure result cannot be accessed.");
 
     public static Result<TValue> Success(TValue value) => new(value, true, null);
+    public new static Result<TValue> Failure(string error) => new(default!, false, error);
 
-    public new static Result<TValue> Falure(string error) = new(default!,false, error);
-
-    public static implicit operator Result<TValue>(TValue value) => new(value, true, null);
-
-    public static implicit operator Result<TValue>(string error) => new(default!,false, error);
+    public static implicit operator Result<TValue>(TValue value) => Success(value);
+    public static implicit operator Result<TValue>(string error) => Failure(error);
 }
-
